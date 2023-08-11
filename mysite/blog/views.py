@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404
-from .models import Post
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
+from django.core.mail import send_mail
+from .models import Post
 from .forms import EmailPostForm
 
 
@@ -53,6 +54,9 @@ def post_share(request, post_id):
     post = get_object_or_404(Post,
                              id=post_id,
                              status=Post.Status.PUBLISHED)
+
+    sent = False
+
     if request.method == 'POST':
         # Форма была передана на обработку
         form = EmailPostForm(request.POST)
@@ -60,9 +64,20 @@ def post_share(request, post_id):
         if form.is_valid():
             # Поля успешно прошли валидацию
             cd = form.cleaned_data
+            # request.build_absolute_uri - формирует полный URl адресс. Вместе с HTTP и hostname
+            post_url = request.build_absolute_uri(post.get_absolute_url())
+            # cd запоминает то, что мы ввели в форму. Извлекает оттуда то, что ввели в поле name
+            subject = f"{cd['name']} reccomends you read"\
+                      f"{post.title}"
+            message = f"Read {post.title} at {post_url}\n\n" \
+                      f"{cd['name']}\'s comments: {cd['comments']}"
+            # Подставляем. Кому отправить берем из формы. Хранится в словаре cd.
+            send_mail(subject,message,'chromweechannelusa@gmail.com',[cd['to']])
+            sent = True
 
             # Отправить электронное письмо
-        else:
-            form = EmailPostForm()
-        return render(request, 'blog/post/share.html', {'post': post,
-                                                        'form': form})
+    else:
+        form = EmailPostForm()
+    return render(request, 'blog/post/share.html', {'post': post,
+                                                    'form': form,
+                                                    'sent': sent})
