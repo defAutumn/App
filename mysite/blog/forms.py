@@ -12,3 +12,6 @@ class CommentForm(forms.ModelForm):
     class Meta:
         model = Comment # Для компонования формы динамичски, Виды полей взяли из модели
         fields = ['name', 'email', 'body']
+
+class SearchForm(forms.Form):
+    query = forms.CharField()
